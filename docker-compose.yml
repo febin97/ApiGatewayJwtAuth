@@ -1,0 +1,87 @@
+version: '3.3'
+
+services:
+  config-server:
+    build: config-server/
+    container_name: config-server
+    restart: always
+
+  rabbitMQ:
+    image: rabbitmq:management-alpine
+    hostname: my-rabbit
+    container_name: rabbitMQ
+    environment:
+      - RABBITMQ_DEFAULT_VHOST=my_vhost
+    restart: always
+    ports:
+      - 15673:15672
+  mongo:
+    image: mongo
+    container_name: mongo
+    restart: always
+    volumes:
+      - $HOME/data:/data/db
+      - $HOME/data:/data/bkp
+  eureka-server:
+    build: eureka-server/
+    container_name: eureka-server
+    restart: always
+    ports:
+      - 8085:8085
+
+  api-gateway:
+    build: api-gateway/
+    container_name: api-gateway
+    depends_on:
+      - config-server
+      - eureka-server
+      - auth-service
+    restart: always
+    links:
+      - auth-service
+    ports:
+      - 8080:8080
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express
+    restart: always
+    environment:
+      - ME_CONFIG_OPTIONS_EDITORTHEME=ambiance
+      - ME_CONFIG_MONGODB_SERVER=mongo
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_BASICAUTH_USERNAME=root
+      - ME_CONFIG_BASICAUTH_PASSWORD=root
+    depends_on:
+      - mongo
+    ports:
+      - 8081:8081
+#  gamos-frontend:
+#    build: frontend/
+#    restart: always
+#    container_name: gamos-frontend
+#    ports:
+#      - 4200:80
+
+  mysql-docker:
+    image: mysql
+    container_name: mysql-docker
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+
+  auth-service:
+    build: authentication-service/
+    restart: always
+    container_name: auth-service
+    ports:
+      - '8090:8090'
+    depends_on:
+      - mysql-docker
+    links:
+      - mysql-docker
+
+
+
+
+
+
